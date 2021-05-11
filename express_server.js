@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const morgan = require('morgan'); // let express know to use middlewaree
-app.use(morgan('dev'));
+//const morgan = require('morgan'); // let express know to use middlewaree
+//app.use(morgan('dev'));
 app.set("view engine", "ejs"); // Set ejs as view engine
 
 const urlDatabase = {
@@ -16,6 +16,11 @@ app.get("/", (req, res) => {
 
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+app.get("/urls", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
 });
 
 app.get("/urls.json", (req, res) => {
