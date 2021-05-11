@@ -77,6 +77,15 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect(`/urls`);         
 });
 
+//edits long url from short url
+app.post("/urls/:id", (req, res) => {
+  console.log(req.params);
+  let newEditURL = req.params['newEditURL'];
+  
+  //delete urlDatabase[urlToDelete];
+  res.redirect(`/urls`);         
+});
+
 //message indicated server is running
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
