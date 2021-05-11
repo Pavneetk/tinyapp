@@ -77,13 +77,11 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect(`/urls`);         
 });
 
-//edits long url from short url
-app.post("/urls/:id", (req, res) => {
-  console.log(req.params);
-  let newEditURL = req.params['newEditURL'];
-  
-  //delete urlDatabase[urlToDelete];
-  res.redirect(`/urls`);         
+//edits long url from short url and then redirects you back to its short url page
+app.post("/urls/:shortURL/edit", (req, res) => {
+  let newEditURL = req.body.newEditURL;
+  urlDatabase[req.params['shortURL']] = newEditURL;
+  res.redirect(`/urls/${req.params['shortURL']}`);         
 });
 
 //message indicated server is running
