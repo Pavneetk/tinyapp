@@ -1,10 +1,12 @@
 const express = require("express");
+const cookieParser = require('cookie-parser')
 const app = express();
 const PORT = 8080; // default port 8080
 //const morgan = require('morgan'); // let express know to use middlewaree
 //app.use(morgan('dev'));
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 app.set("view engine", "ejs"); // Set ejs as view engine
 
 //function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
@@ -32,18 +34,19 @@ app.get("/hello", (req, res) => {
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"]};
+  res.render("urls_new", templateVars);
 });
 
 //Urls index Page
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase , username: req.cookies["username"]};
   res.render("urls_index", templateVars);
 });
 
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"], };
   console.log(templateVars);
   res.render("urls_show", templateVars);
 });
@@ -82,6 +85,20 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   let newEditURL = req.body.newEditURL;
   urlDatabase[req.params['shortURL']] = newEditURL;
   res.redirect(`/urls/${req.params['shortURL']}`);         
+});
+
+//Creates a login cookie
+app.post("/login", (req, res) => {
+  let username = req.body.username;
+  res.cookie('username',username);
+  res.redirect(`/urls`);         
+});
+
+//logs out user
+app.post("/logout", (req, res) => {
+  let username = req.body.username;
+  res.clearCookie('username');
+  res.redirect(`/urls`);         
 });
 
 //message indicated server is running
