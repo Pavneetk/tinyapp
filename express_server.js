@@ -7,6 +7,8 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs"); // Set ejs as view engine
 
+//function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
+//math.random generates random number that is converted to base 36 (0-z), then set to a substring from index 2-6 to skip 0. 
 function generateRandomString() {
   return Math.random().toString(36).substr(2,6);
 };
