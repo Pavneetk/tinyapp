@@ -1,6 +1,8 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const morgan = require('morgan'); // let express know to use middlewaree
+app.use(morgan('dev'));
 app.set("view engine", "ejs"); // Set ejs as view engine
 
 const urlDatabase = {
