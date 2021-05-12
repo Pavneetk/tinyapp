@@ -5,18 +5,6 @@ const PORT = 8080; // default port 8080
 //const morgan = require('morgan'); // let express know to use middlewaree
 //app.use(morgan('dev'));
 const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
-app.set("view engine", "ejs"); // Set ejs as view engine
-
-//function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
-//math.random generates random number that is converted to base 36 (0-z), then set to a substring from index 2-6 to skip 0. 
-function generateRandomString() {
-  return Math.random().toString(36).substr(2,6);
-};
-
-
-
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -24,18 +12,42 @@ const urlDatabase = {
 
 
 
-const users = { 
+const users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     password: "welcome"
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
     password: "hello"
   }
 }
+
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.set("view engine", "ejs"); // Set ejs as view engine
+
+//function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
+//math.random generates random number that is converted to base 36 (0-z), then set to a substring from index 2-6 to skip 0. 
+function generateRandomString() {
+  return Math.random().toString(36).substr(2, 6);
+};
+
+function emailLookup(emailCheck) {
+  for (const user in users) {
+    for (const email in users[user]) {
+      if (users[user][email] === emailCheck) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+
+};
 
 
 
@@ -51,16 +63,16 @@ app.get("/hello", (req, res) => {
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: users[req.cookies['user_id']]};
+  const templateVars = { user: users[req.cookies['user_id']] };
   res.render("urls_new", templateVars);
 });
 
 //Urls index Page
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase , user: users[req.cookies['user_id']]};
-  
+  const templateVars = { urls: urlDatabase, user: users[req.cookies['user_id']] };
+
   res.render("urls_index", templateVars);
-  
+
 });
 
 //specifc short url page
@@ -83,8 +95,8 @@ app.get("/urls.json", (req, res) => {
 
 //renders user registration page
 app.get("/register", (req, res) => {
-  
-  const templateVars = { user: users[req.cookies['user_id']]};
+
+  const templateVars = { user: users[req.cookies['user_id']] };
   res.render("user_reg", templateVars);
 });
 
@@ -93,9 +105,9 @@ app.get("/register", (req, res) => {
 //then redirects to the new shorturl page
 app.post("/urls", (req, res) => {
   console.log(req.body);
-  let newShortURL =generateRandomString();
-  urlDatabase[newShortURL] = req.body['longURL']; 
-  res.redirect(`/urls/${newShortURL}`);         
+  let newShortURL = generateRandomString();
+  urlDatabase[newShortURL] = req.body['longURL'];
+  res.redirect(`/urls/${newShortURL}`);
 });
 
 //deletes shorturl and longurl key value pair from the urlDatabase object
@@ -103,49 +115,52 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:shortURL/delete", (req, res) => {
   let urlToDelete = req.params['shortURL'];
   delete urlDatabase[urlToDelete];
-  res.redirect(`/urls`);         
+  res.redirect(`/urls`);
 });
 
 //edits long url from short url and then redirects you back to its short url page
 app.post("/urls/:shortURL/edit", (req, res) => {
   let newEditURL = req.body.newEditURL;
   urlDatabase[req.params['shortURL']] = newEditURL;
-  res.redirect(`/urls/${req.params['shortURL']}`);         
+  res.redirect(`/urls/${req.params['shortURL']}`);
 });
 
 //Creates a login cookie
 app.post("/login", (req, res) => {
   let username = req.body.username;
-  res.cookie('user_id',username);
-  res.redirect(`/urls`);         
+  res.cookie('user_id', username);
+  res.redirect(`/urls`);
 });
 
 //logs out user
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
-  res.redirect(`/urls`);         
+  res.redirect(`/urls`);
 });
 
 //registers a new user
 app.post("/register", (req, res) => {
- /*
-  let id = generateRandomString();
- let email = req.body.email;
- let password = req.body.password;
- */
-const newId = generateRandomString();
 
-let newUser = {
-   id : newId,
-   email : req.body.email,
-   password : req.body.password,
- }
+  const newId = generateRandomString();
 
- users[newUser['id']] = newUser;
+  if ((req.body.email) && (req.body.password) && (!emailLookup(req.body.email))) {
+    
+    let newUser = {
+      id: newId,
+      email: req.body.email,
+      password: req.body.password,
+    }
 
- res.clearCookie('user_id');
- res.cookie('user_id', newUser['id']);
- res.redirect(`/urls`)       
+    users[newUser['id']] = newUser;
+
+    res.clearCookie('user_id');
+    res.cookie('user_id', newUser['id']);
+    res.redirect(`/urls`)
+  }
+
+  res.status(400).send('Missing information or account already exists!');
+
+
 });
 
 
