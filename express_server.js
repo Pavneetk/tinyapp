@@ -51,19 +51,21 @@ app.get("/hello", (req, res) => {
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]};
+  const templateVars = { user: users[req.cookies['user_id']]};
   res.render("urls_new", templateVars);
 });
 
 //Urls index Page
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase , username: req.cookies["username"]};
+  const templateVars = { urls: urlDatabase , user: users[req.cookies['user_id']]};
+  
   res.render("urls_index", templateVars);
+  
 });
 
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"], };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies['user_id']], };
   console.log(templateVars);
   res.render("urls_show", templateVars);
 });
@@ -81,7 +83,8 @@ app.get("/urls.json", (req, res) => {
 
 //renders user registration page
 app.get("/register", (req, res) => {
-  const templateVars = { username: req.cookies["username"]};
+  
+  const templateVars = { user: users[req.cookies['user_id']]};
   res.render("user_reg", templateVars);
 });
 
@@ -113,31 +116,35 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 //Creates a login cookie
 app.post("/login", (req, res) => {
   let username = req.body.username;
-  res.cookie('username',username);
+  res.cookie('user_id',username);
   res.redirect(`/urls`);         
 });
 
 //logs out user
 app.post("/logout", (req, res) => {
-  let username = req.body.username;
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect(`/urls`);         
 });
 
 //registers a new user
 app.post("/register", (req, res) => {
- let id = generateRandomString();
+ /*
+  let id = generateRandomString();
  let email = req.body.email;
  let password = req.body.password;
- 
- let newUser = {
-   id : id,
-   email : email,
-   password : password,
+ */
+const newId = generateRandomString();
+
+let newUser = {
+   id : newId,
+   email : req.body.email,
+   password : req.body.password,
  }
- users[id] = newUser;
- res.cookie('user_id', id);
- console.log(users);
+
+ users[newUser['id']] = newUser;
+
+ res.clearCookie('user_id');
+ res.cookie('user_id', newUser['id']);
  res.redirect(`/urls`)       
 });
 
