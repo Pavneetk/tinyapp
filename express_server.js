@@ -22,6 +22,23 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "welcome"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "hello"
+  }
+}
+
+
+
 //Home Page
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -106,6 +123,24 @@ app.post("/logout", (req, res) => {
   res.clearCookie('username');
   res.redirect(`/urls`);         
 });
+
+//registers a new user
+app.post("/register", (req, res) => {
+ let id = generateRandomString();
+ let email = req.body.email;
+ let password = req.body.password;
+ 
+ let newUser = {
+   id : id,
+   email : email,
+   password : password,
+ }
+ users[id] = newUser;
+ res.cookie('user_id', id);
+ console.log(users);
+ res.redirect(`/urls`)       
+});
+
 
 //message indicated server is running
 app.listen(PORT, () => {
