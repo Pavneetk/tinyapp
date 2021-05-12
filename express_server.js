@@ -62,6 +62,12 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+//renders user registration page
+app.get("/register", (req, res) => {
+  const templateVars = { username: req.cookies["username"]};
+  res.render("user_reg", templateVars);
+});
+
 //Creates new short url for entered long url and saves it to the urlDatabase
 //calls generaterandomstring to create new short url. the shorturl and long url are added as key value pair 
 //then redirects to the new shorturl page
