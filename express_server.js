@@ -6,8 +6,11 @@ const PORT = 8080; // default port 8080
 //app.use(morgan('dev'));
 const bodyParser = require("body-parser");
 const urlDatabase = {
-  "b2xVn2": {longURL: "http://www.lighthouselabs.ca", userID: "example1"},
-  "9sm5xK": {longURL: "http://www.google.com", userID: "example2"}
+  "b2xVn2": {longURL: "http://www.lighthouselabs.ca", userID: "example2"},
+  "9sm5xK": {longURL: "http://www.google.com", userID: "example1"},
+  "9sm3xK": {longURL: "http://www.google.com", userID: "example1"},
+  "9sm2xK": {longURL: "http://www.google.com", userID: "example1"},
+  "9s15xK": {longURL: "http://www.google.com", userID: "example1"},
 };
 
 
@@ -49,6 +52,22 @@ function emailLookup(emailCheck) {
 
 };
 
+function filterURL(cookieUserID){
+  let filteredUrlData = {};
+  for (const shorturls in urlDatabase) {
+    for (const userID in urlDatabase[shorturls]) {
+      if (urlDatabase[shorturls][userID] === cookieUserID) {
+        filteredUrlData[shorturls] = {
+          longURL: urlDatabase[shorturls]['longURL'],
+          userID: urlDatabase[shorturls][userID],
+        };
+      }
+    }
+  }
+  return filteredUrlData;
+};
+
+
 
 //Home Page
 app.get("/", (req, res) => {
@@ -73,17 +92,25 @@ app.get("/urls/new", (req, res) => {
 
 //Urls index Page
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, user: users[req.cookies['user_id']] };
-
+  if (users[req.cookies['user_id']]) {
+  let filteredURLDatabase = filterURL(req.cookies['user_id']);
+  const templateVars = { urls: filteredURLDatabase, user: users[req.cookies['user_id']] };
   res.render("urls_index", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 
 });
 
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user: users[req.cookies['user_id']], };
-  console.log(templateVars);
+  if (users[req.cookies['user_id']]) {
+    let filteredURLDatabase =filterURL(req.cookies['user_id']);
+  const templateVars = { shortURL: req.params.shortURL, longURL: filteredURLDatabase[req.params.shortURL]['longURL'], user: users[req.cookies['user_id']], };
   res.render("urls_show", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
 
 //redirects short url to long url
@@ -128,16 +155,24 @@ app.post("/urls", (req, res) => {
 //deletes shorturl and longurl key value pair from the urlDatabase object
 //and redirects back to the url index page
 app.post("/urls/:shortURL/delete", (req, res) => {
+  if (users[req.cookies['user_id']]) {
   let urlToDelete = req.params['shortURL'];
   delete urlDatabase[urlToDelete];
   res.redirect(`/urls`);
+  } else {
+    res.sendStatus(403);
+  }
 });
 
 //edits long url from short url and then redirects you back to its short url page
 app.post("/urls/:shortURL/edit", (req, res) => {
+  if (users[req.cookies['user_id']]) {
   let newEditURL = req.body.newEditURL;
-  urlDatabase[req.params['shortURL']] = newEditURL;
+  urlDatabase[req.params['shortURL']]['longURL'] = newEditURL;
   res.redirect(`/urls/${req.params['shortURL']}`);
+  } else{
+    res.sendStatus(403);
+  }
 });
 
 //Creates a login cookie
@@ -187,3 +222,6 @@ app.post("/register", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+
+
