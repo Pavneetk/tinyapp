@@ -40,7 +40,7 @@ function emailLookup(emailCheck) {
   for (const user in users) {
     for (const email in users[user]) {
       if (users[user][email] === emailCheck) {
-        return true;
+        return users[user]['id'];
       }
     }
   }
@@ -48,7 +48,6 @@ function emailLookup(emailCheck) {
   return false;
 
 };
-
 
 
 //Home Page
@@ -100,6 +99,12 @@ app.get("/register", (req, res) => {
   res.render("user_reg", templateVars);
 });
 
+//renders user login page
+app.get("/login", (req, res) => {
+  const templateVars = { user: users[req.cookies['user_id']] };
+  res.render("user_login", templateVars);
+});
+
 //Creates new short url for entered long url and saves it to the urlDatabase
 //calls generaterandomstring to create new short url. the shorturl and long url are added as key value pair 
 //then redirects to the new shorturl page
@@ -127,9 +132,15 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 //Creates a login cookie
 app.post("/login", (req, res) => {
-  let username = req.body.username;
-  res.cookie('user_id', username);
-  res.redirect(`/urls`);
+  if((emailLookup(req.body.email) !== false) && (users[emailLookup(req.body.email)]['password'] === req.body.password)) {
+    res.cookie('user_id', users[emailLookup(req.body.email)]['id'] )
+    res.redirect("/urls");
+  }
+  else{
+  res.sendStatus(403);
+  }
+
+
 });
 
 //logs out user
@@ -152,14 +163,12 @@ app.post("/register", (req, res) => {
     }
 
     users[newUser['id']] = newUser;
-
-    res.clearCookie('user_id');
     res.cookie('user_id', newUser['id']);
-    res.redirect(`/urls`)
+    res.redirect(`/urls`);
+  } else {
+
+  res.sendStatus(400);
   }
-
-  res.status(400).send('Missing information or account already exists!');
-
 
 });
 
