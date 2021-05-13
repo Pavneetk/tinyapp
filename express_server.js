@@ -6,8 +6,8 @@ const PORT = 8080; // default port 8080
 //app.use(morgan('dev'));
 const bodyParser = require("body-parser");
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {longURL: "http://www.lighthouselabs.ca", userID: "example1"},
+  "9sm5xK": {longURL: "http://www.google.com", userID: "example2"}
 };
 
 
@@ -62,8 +62,13 @@ app.get("/hello", (req, res) => {
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
+  if (users[req.cookies['user_id']]){
   const templateVars = { user: users[req.cookies['user_id']] };
   res.render("urls_new", templateVars);
+  }
+  else {
+    res.redirect("/login");
+  }
 });
 
 //Urls index Page
@@ -76,7 +81,7 @@ app.get("/urls", (req, res) => {
 
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies['user_id']], };
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user: users[req.cookies['user_id']], };
   console.log(templateVars);
   res.render("urls_show", templateVars);
 });
