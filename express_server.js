@@ -1,5 +1,5 @@
 const express = require("express");
-const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session')
 const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
@@ -31,7 +31,13 @@ const users = {
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['kendrickLamar'],
+  maxAge: 2 * 60 * 60 * 1000 //2 hours
+}));
+
+
 app.set("view engine", "ejs"); // Set ejs as view engine
 
 //function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
@@ -72,7 +78,7 @@ function filterURL(cookieUserID){
 
 //Home Page
 app.get("/", (req, res) => {
-  if (users[req.cookies['user_id']]) {
+  if (users[req.session.user_id]) {
       res.redirect("/urls");
     } else {
       res.redirect("/login");
@@ -82,8 +88,8 @@ app.get("/", (req, res) => {
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
-  if (users[req.cookies['user_id']]){
-  const templateVars = { user: users[req.cookies['user_id']] };
+  if (users[req.session.user_id]){
+  const templateVars = { user: users[req.session.user_id] };
   res.render("urls_new", templateVars);
   }
   else {
@@ -93,9 +99,9 @@ app.get("/urls/new", (req, res) => {
 
 //Urls index Page
 app.get("/urls", (req, res) => {
-  if (users[req.cookies['user_id']]) {
-  let filteredURLDatabase = filterURL(req.cookies['user_id']);
-  const templateVars = { urls: filteredURLDatabase, user: users[req.cookies['user_id']] };
+  if (users[req.session.user_id]) {
+  let filteredURLDatabase = filterURL(req.session.user_id);
+  const templateVars = { urls: filteredURLDatabase, user: users[req.session.user_id] };
   res.render("urls_index", templateVars);
   } else {
     res.redirect("/login");
@@ -105,9 +111,9 @@ app.get("/urls", (req, res) => {
 
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
-  if (users[req.cookies['user_id']]) {
-    let filteredURLDatabase =filterURL(req.cookies['user_id']);
-  const templateVars = { shortURL: req.params.shortURL, longURL: filteredURLDatabase[req.params.shortURL]['longURL'], user: users[req.cookies['user_id']], };
+  if (users[req.session.user_id]) {
+    let filteredURLDatabase =filterURL(req.session.user_id);
+  const templateVars = { shortURL: req.params.shortURL, longURL: filteredURLDatabase[req.params.shortURL]['longURL'], user: users[req.session.user_id], };
   res.render("urls_show", templateVars);
   } else {
     res.redirect("/login");
@@ -128,13 +134,13 @@ app.get("/urls.json", (req, res) => {
 //renders user registration page
 app.get("/register", (req, res) => {
 
-  const templateVars = { user: users[req.cookies['user_id']] };
+  const templateVars = { user: users[req.session.user_id] };
   res.render("user_reg", templateVars);
 });
 
 //renders user login page
 app.get("/login", (req, res) => {
-  const templateVars = { user: users[req.cookies['user_id']] };
+  const templateVars = { user: users[req.session.user_id] };
   res.render("user_login", templateVars);
 });
 
@@ -146,7 +152,7 @@ app.post("/urls", (req, res) => {
   let newShortURL = generateRandomString();
   urlDatabase[newShortURL] = {
     longURL :req.body['longURL'],
-    userID: req.cookies['user_id']
+    userID: req.session.user_id
   };
   
   
@@ -156,7 +162,7 @@ app.post("/urls", (req, res) => {
 //deletes shorturl and longurl key value pair from the urlDatabase object
 //and redirects back to the url index page
 app.post("/urls/:shortURL/delete", (req, res) => {
-  if (users[req.cookies['user_id']]) {
+  if (users[req.session.user_id]) {
   let urlToDelete = req.params['shortURL'];
   delete urlDatabase[urlToDelete];
   res.redirect(`/urls`);
@@ -167,7 +173,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //edits long url from short url and then redirects you back to its short url page
 app.post("/urls/:shortURL/edit", (req, res) => {
-  if (users[req.cookies['user_id']]) {
+  if (users[req.session.user_id]) {
   let newEditURL = req.body.newEditURL;
   urlDatabase[req.params['shortURL']]['longURL'] = newEditURL;
   res.redirect(`/urls/${req.params['shortURL']}`);
@@ -178,8 +184,8 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 //Creates a login cookie
 app.post("/login", (req, res) => {
-  if((emailLookup(req.body.email) !== false) && (bcrypt.compareSync(req.body.password, users[emailLookup(req.body.email)]['password']))) {
-    res.cookie('user_id', users[emailLookup(req.body.email)]['id'] )
+  if((emailLookup(req.body.email) !== false) && (bcrypt.compareSync(req.body.password, users[emailLookup(req.body.email)]['password']))) {//compares hashed password to one entered 
+    req.session.user_id = users[emailLookup(req.body.email)]['id'];
     res.redirect("/urls");
   }
   else{
@@ -191,7 +197,7 @@ app.post("/login", (req, res) => {
 
 //logs out user
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect(`/urls`);
 });
 
@@ -201,7 +207,7 @@ app.post("/register", (req, res) => {
   const newId = generateRandomString();
 
   if ((req.body.email) && (req.body.password) && (!emailLookup(req.body.email))) {
-    let hashedPassword = bcrypt.hashSync(req.body.password,10);
+    let hashedPassword = bcrypt.hashSync(req.body.password,10);//creates a hashed password before storing in database
     let newUser = {
       id: newId,
       email: req.body.email,
@@ -209,7 +215,7 @@ app.post("/register", (req, res) => {
     }
 
     users[newUser['id']] = newUser;
-    res.cookie('user_id', newUser['id']);
+    req.session.user_id = newUser['id'];
     res.redirect(`/urls`);
   } else {
 
