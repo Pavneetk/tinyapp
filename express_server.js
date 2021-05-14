@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieSession = require('cookie-session')
+const {emailLookup, filterURL, generateRandomString} = require('./helper');
 const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
@@ -31,6 +32,7 @@ const users = {
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(cookieSession({
   name: 'session',
   keys: ['kendrickLamar'],
@@ -39,40 +41,6 @@ app.use(cookieSession({
 
 
 app.set("view engine", "ejs"); // Set ejs as view engine
-
-//function implemented from https://dev.to/oyetoket/fastest-way-to-generate-random-strings-in-javascript-2k5a
-//math.random generates random number that is converted to base 36 (0-z), then set to a substring from index 2-6 to skip 0. 
-function generateRandomString() {
-  return Math.random().toString(36).substr(2, 6);
-};
-
-function emailLookup(emailCheck) {
-  for (const user in users) {
-    for (const email in users[user]) {
-      if (users[user][email] === emailCheck) {
-        return users[user]['id'];
-      }
-    }
-  }
-
-  return false;
-
-};
-
-function filterURL(cookieUserID){
-  let filteredUrlData = {};
-  for (const shorturls in urlDatabase) {
-    for (const userID in urlDatabase[shorturls]) {
-      if (urlDatabase[shorturls][userID] === cookieUserID) {
-        filteredUrlData[shorturls] = {
-          longURL: urlDatabase[shorturls]['longURL'],
-          userID: urlDatabase[shorturls][userID],
-        };
-      }
-    }
-  }
-  return filteredUrlData;
-};
 
 
 
@@ -100,7 +68,7 @@ app.get("/urls/new", (req, res) => {
 //Urls index Page
 app.get("/urls", (req, res) => {
   if (users[req.session.user_id]) {
-  let filteredURLDatabase = filterURL(req.session.user_id);
+  let filteredURLDatabase = filterURL(req.session.user_id, urlDatabase);
   const templateVars = { urls: filteredURLDatabase, user: users[req.session.user_id] };
   res.render("urls_index", templateVars);
   } else {
@@ -112,7 +80,7 @@ app.get("/urls", (req, res) => {
 //specifc short url page
 app.get("/urls/:shortURL", (req, res) => {
   if (users[req.session.user_id]) {
-    let filteredURLDatabase =filterURL(req.session.user_id);
+    let filteredURLDatabase =filterURL(req.session.user_id, urlDatabase);
   const templateVars = { shortURL: req.params.shortURL, longURL: filteredURLDatabase[req.params.shortURL]['longURL'], user: users[req.session.user_id], };
   res.render("urls_show", templateVars);
   } else {
@@ -184,12 +152,12 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 //Creates a login cookie
 app.post("/login", (req, res) => {
-  if((emailLookup(req.body.email) !== false) && (bcrypt.compareSync(req.body.password, users[emailLookup(req.body.email)]['password']))) {//compares hashed password to one entered 
-    req.session.user_id = users[emailLookup(req.body.email)]['id'];
+  if((emailLookup(req.body.email, users) !== false) && (bcrypt.compareSync(req.body.password, users[emailLookup(req.body.email, users)]['password']))) {//compares hashed password to one entered 
+    req.session.user_id = users[emailLookup(req.body.email, users)]['id'];
     res.redirect("/urls");
   }
   else{
-  res.sendStatus(403);
+  res.sendStatus(400);
   }
 
 
@@ -206,7 +174,7 @@ app.post("/register", (req, res) => {
 
   const newId = generateRandomString();
 
-  if ((req.body.email) && (req.body.password) && (!emailLookup(req.body.email))) {
+  if ((req.body.email) && (req.body.password) && (!emailLookup(req.body.email, users))) {
     let hashedPassword = bcrypt.hashSync(req.body.password,10);//creates a hashed password before storing in database
     let newUser = {
       id: newId,
