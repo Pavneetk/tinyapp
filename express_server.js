@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser')
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
 //const morgan = require('morgan'); // let express know to use middlewaree
@@ -71,13 +72,13 @@ function filterURL(cookieUserID){
 
 //Home Page
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (users[req.cookies['user_id']]) {
+      res.redirect("/urls");
+    } else {
+      res.redirect("/login");
+    }
 });
 
-//Hello Page
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
 
 //Add New Urls page
 app.get("/urls/new", (req, res) => {
@@ -177,7 +178,7 @@ app.post("/urls/:shortURL/edit", (req, res) => {
 
 //Creates a login cookie
 app.post("/login", (req, res) => {
-  if((emailLookup(req.body.email) !== false) && (users[emailLookup(req.body.email)]['password'] === req.body.password)) {
+  if((emailLookup(req.body.email) !== false) && (bcrypt.compareSync(req.body.password, users[emailLookup(req.body.email)]['password']))) {
     res.cookie('user_id', users[emailLookup(req.body.email)]['id'] )
     res.redirect("/urls");
   }
@@ -200,11 +201,11 @@ app.post("/register", (req, res) => {
   const newId = generateRandomString();
 
   if ((req.body.email) && (req.body.password) && (!emailLookup(req.body.email))) {
-    
+    let hashedPassword = bcrypt.hashSync(req.body.password,10);
     let newUser = {
       id: newId,
       email: req.body.email,
-      password: req.body.password,
+      password: hashedPassword,
     }
 
     users[newUser['id']] = newUser;
